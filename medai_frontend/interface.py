@@ -4,6 +4,7 @@ import plotly.express as px
 import requests
 import time
 
+
 PRIMARY_BLUE = "#3498db"
 
 st.set_page_config(
@@ -42,14 +43,14 @@ MedAI allows you to specify your symptoms and can diagnose a disease for you.
 *Note: This is only an indication for your disease and should not be used for actual medical diagnosis.*
 """)
 
-# User input for symptoms
+
 symptoms_input = st.text_area("Enter your symptoms separated by commas:")
 
 if st.button("Check Probable Diseases"):
     if not symptoms_input.strip():
         st.warning("Please enter at least one symptom to get a diagnosis.")
     else:
-        url = 'https://disease-predictor-vol3-739437866088.europe-west1.run.app/diagnosis'
+        url = 'https://disease-predictor-vol2-39170945173.europe-west1.run.app/diagnosis'
         params = {"inputs": symptoms_input}
 
         with st.spinner("Fetching diagnosis, please wait..."):
@@ -59,11 +60,11 @@ if st.button("Check Probable Diseases"):
                 res.raise_for_status()
                 json_data = res.json()
 
-                predictions = json_data.get('predictions', [])
-                df = pd.DataFrame(predictions)
-                df.columns = ["Disease", "Probability"]
 
-                df["Probability"] *= 100
+                predictions = json_data.get('Predictions', [])
+
+                df = pd.DataFrame([{ "Disease": p["Disease"], "Probability": p["Probability"] * 100} for p in predictions])
+
 
                 df = df.sort_values(by="Probability", ascending=False).head(3)
 
@@ -74,7 +75,20 @@ if st.button("Check Probable Diseases"):
 
 
                 st.plotly_chart(fig)
+
+
                 st.dataframe(df)
+
+
+                st.subheader("Symptoms contributing to top diseases")
+                for index, row in df.iterrows():
+                    disease_name = row["Disease"]
+                    symptoms_data = next((p["Symptoms"] for p in predictions if p["Disease"] == disease_name), {})
+                    symptoms_df = pd.DataFrame(symptoms_data.items(), columns=["Symptom", "Probability"])
+                    symptoms_df["Probability"] *= 100
+                    symptoms_df = symptoms_df.sort_values(by="Probability", ascending=False)
+                    st.write(f"**{disease_name}**")
+                    st.dataframe(symptoms_df)
 
             except requests.exceptions.RequestException as e:
                 st.error(f"An error occurred while fetching data: {e}")
