@@ -4,13 +4,11 @@ import plotly.express as px
 import requests
 import time
 
-# Define primary color
 PRIMARY_BLUE = "#3498db"
 
-# Set Streamlit page config
 st.set_page_config(
-    page_title="My Light Mode App",
-    layout="wide",  # Enables wide mode
+    page_title="MedAI",
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -55,32 +53,27 @@ if st.button("Check Probable Diseases"):
         params = {"inputs": symptoms_input}
 
         with st.spinner("Fetching diagnosis, please wait..."):
-            time.sleep(1)  # Simulate loading effect
+            time.sleep(1)
             try:
                 res = requests.get(url, params=params)
                 res.raise_for_status()
                 json_data = res.json()
 
-                # Extract diseases and probabilities from response
                 predictions = json_data.get('predictions', [])
                 df = pd.DataFrame(predictions)
                 df.columns = ["Disease", "Probability"]
 
-                # Convert probability to percentage
                 df["Probability"] *= 100
 
-                # Sort and select top 3 probable diseases
                 df = df.sort_values(by="Probability", ascending=False).head(3)
 
-                # Create a Plotly bar chart
+
                 fig = px.bar(df, x="Probability", y="Disease", orientation='h',
                              title="Top 3 Probable Diseases", color="Probability")
                 fig.update_layout(yaxis={'categoryorder':'total ascending'})
 
-                # Show chart in Streamlit
-                st.plotly_chart(fig)
 
-                # Display results as a dataframe
+                st.plotly_chart(fig)
                 st.dataframe(df)
 
             except requests.exceptions.RequestException as e:
