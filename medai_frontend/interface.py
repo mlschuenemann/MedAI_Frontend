@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import requests
 import time
 
@@ -8,8 +7,7 @@ import time
 PRIMARY_BLUE = "#3498db"
 
 st.set_page_config(
-    page_title="MedAI",
-    layout="wide",
+    page_title="My Light Mode App",
     initial_sidebar_state="expanded"
 )
 
@@ -43,7 +41,6 @@ MedAI allows you to specify your symptoms and can diagnose a disease for you.
 *Note: This is only an indication for your disease and should not be used for actual medical diagnosis.*
 """)
 
-
 symptoms_input = st.text_area("Enter your symptoms separated by commas:")
 
 if st.button("Check Probable Diseases"):
@@ -62,33 +59,25 @@ if st.button("Check Probable Diseases"):
 
 
                 predictions = json_data.get('Predictions', [])
+                if not predictions:
+                    st.warning("No diseases found. Try modifying your input symptoms.")
 
-                df = pd.DataFrame([{ "Disease": p["Disease"], "Probability": p["Probability"] * 100} for p in predictions])
-
-
-                df = df.sort_values(by="Probability", ascending=False).head(3)
-
-
-                fig = px.bar(df, x="Probability", y="Disease", orientation='h',
-                             title="Top 3 Probable Diseases", color="Probability")
-                fig.update_layout(yaxis={'categoryorder':'total ascending'})
+                for pred in predictions:
+                    disease = pred.get("Disease", "Unknown Disease")
+                    probability = pred.get("Probability", 0) * 100  # Convert to percentage
+                    symptoms_dict = pred.get("Symptoms", {})
 
 
-                st.plotly_chart(fig)
-
-
-                st.dataframe(df)
-
-
-                st.subheader("Symptoms contributing to top diseases")
-                for index, row in df.iterrows():
-                    disease_name = row["Disease"]
-                    symptoms_data = next((p["Symptoms"] for p in predictions if p["Disease"] == disease_name), {})
-                    symptoms_df = pd.DataFrame(symptoms_data.items(), columns=["Symptom", "Probability"])
-                    symptoms_df["Probability"] *= 100
-                    symptoms_df = symptoms_df.sort_values(by="Probability", ascending=False)
-                    st.write(f"**{disease_name}**")
-                    st.dataframe(symptoms_df)
+                    with st.expander(f"🦠 **{disease}** - {probability:.2f}% probability"):
+                        if symptoms_dict:
+                            st.markdown("### Symptoms & Probabilities")
+                            symptoms_df = pd.DataFrame(
+                                symptoms_dict.items(), columns=["Symptom", "Probability"]
+                            ).sort_values(by="Probability", ascending=False)
+                            symptoms_df["Probability"] = (symptoms_df["Probability"] * 100).round(2).astype(str) + "%"
+                            st.dataframe(symptoms_df, hide_index=True)
+                        else:
+                            st.write("No symptom data available.")
 
             except requests.exceptions.RequestException as e:
                 st.error(f"An error occurred while fetching data: {e}")
