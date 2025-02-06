@@ -1,0 +1,6 @@
+streamlit
+google-generativeai
+requests
+pandas
+numpy
+gemini_api
