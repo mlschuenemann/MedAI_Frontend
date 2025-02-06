@@ -3,11 +3,35 @@ import pandas as pd
 import requests
 import time
 
-
 PRIMARY_BLUE = "#3498db"
 
+def display_used_symptoms(used_symptoms):
+    """Display used symptoms as tiles."""
+    if used_symptoms:
+        st.markdown("### Used Symptoms")
+        symptom_tiles = "".join(
+            [f"<span class='symptom-tile'>{symptom}</span>" for symptom in used_symptoms]
+        )
+        st.markdown(
+            f"""
+            <style>
+                .symptom-tile {{
+                    display: inline-block;
+                    background-color: {PRIMARY_BLUE};
+                    color: white;
+                    padding: 8px 15px;
+                    margin: 5px;
+                    border-radius: 10px;
+                    font-size: 14px;
+                }}
+            </style>
+            {symptom_tiles}
+            """,
+            unsafe_allow_html=True,
+        )
+
 st.set_page_config(
-    page_title="My Light Mode App",
+    page_title="MedAI",
     initial_sidebar_state="expanded"
 )
 
@@ -47,7 +71,7 @@ if st.button("Check Probable Diseases"):
     if not symptoms_input.strip():
         st.warning("Please enter at least one symptom to get a diagnosis.")
     else:
-        url = 'https://disease-predictor-vol2-39170945173.europe-west1.run.app/diagnosis'
+        url = 'https://medai-39170945173.europe-west1.run.app/diagnosis'
         params = {"inputs": symptoms_input}
 
         with st.spinner("Fetching diagnosis, please wait..."):
@@ -57,6 +81,8 @@ if st.button("Check Probable Diseases"):
                 res.raise_for_status()
                 json_data = res.json()
 
+                used_symptoms = json_data.get("Used_Symptoms", [])
+                display_used_symptoms(used_symptoms)
 
                 predictions = json_data.get('Predictions', [])
                 if not predictions:
@@ -66,7 +92,6 @@ if st.button("Check Probable Diseases"):
                     disease = pred.get("Disease", "Unknown Disease")
                     probability = pred.get("Probability", 0) * 100  # Convert to percentage
                     symptoms_dict = pred.get("Symptoms", {})
-
 
                     with st.expander(f"🦠 **{disease}** - {probability:.2f}% probability"):
                         if symptoms_dict:
