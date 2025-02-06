@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import requests
 import time
 import google.generativeai as genai
@@ -34,7 +35,35 @@ def extract_symptoms_gemini(symptom_description, API_KEY):
         print(f"Error calling Gemini API: {e}")
         return None
 
+
+def get_disease_description(disease_name, API_KEY):
+    """
+    Fetches a description of the disease using the Gemini API.
+
+    Args:
+        disease_name: The name of the disease.
+
+    Returns:
+        A string containing the description of the disease, or None if there's an error.
+    """
+    try:
+        genai.configure(api_key=API_KEY)  # configure API key
+        prompt = f"""
+        Provide a brief description of the disease: {disease_name}.
+        Keep the description concise and informative.
+        """
+        model = genai.GenerativeModel("gemini-1.5-flash")  # Or another suitable Gemini model
+        response = model.generate_content(prompt)
+
+        return response.text.strip()
+
+    except Exception as e:
+        print(f"Error calling Gemini API: {e}")
+        return None
+
+
 PRIMARY_BLUE = "#3498db"
+SECONDARY_COLOR = "#3278db"
 
 def display_used_symptoms(used_symptoms):
     """Display used symptoms as tiles."""
@@ -81,15 +110,15 @@ st.markdown(
             color: {PRIMARY_BLUE} !important;
         }}
         textarea:focus {{
-            border: 2px solid {PRIMARY_BLUE} !important;
-            box-shadow: 0 0 5px {PRIMARY_BLUE} !important;
+            border: 2px solid {SECONDARY_COLOR} !important;
+            box-shadow: 0 0 5px {SECONDARY_COLOR} !important;
         }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.title("MedAI")
+st.title("🚑 MedAI")
 
 st.markdown("""
 MedAI allows you to specify your symptoms and can diagnose a disease for you.
@@ -97,6 +126,7 @@ MedAI allows you to specify your symptoms and can diagnose a disease for you.
 """)
 
 API_KEY = st.secrets["API_KEY"]
+
 
 symptoms_description = st.text_area("Describe your symptoms:")
 
@@ -108,6 +138,7 @@ if st.button("Check Diseases"):
         if extracted_symptoms:
             #st.write(f"Extracted Symptoms: {extracted_symptoms}")
             url = 'https://medai-39170945173.europe-west1.run.app/diagnosis'
+
             params = {"inputs": extracted_symptoms}
 
             with st.spinner("Fetching diagnosis, please wait..."):
@@ -130,12 +161,18 @@ if st.button("Check Diseases"):
                         symptoms_dict = pred.get("Symptoms", {})
 
                         with st.expander(f"🦠 **{disease}** - {probability:.2f}% probability"):
+
+                            disease_description = get_disease_description(disease, API_KEY)
+                            if disease_description:
+                                st.markdown("#### Disease description")
+                                st.write(disease_description)
+
                             if symptoms_dict:
-                                st.markdown("### Symptoms & Probabilities")
+                                st.markdown("#### Symptoms")
                                 symptoms_df = pd.DataFrame(
-                                    symptoms_dict.items(), columns=["Symptom", "Probability"]
-                                ).sort_values(by="Probability", ascending=False)
-                                symptoms_df["Probability"] = (symptoms_df["Probability"] * 100).round(2).astype(str) + "%"
+                                    symptoms_dict.items(), columns=["Symptom", "Weight"]
+                                ).sort_values(by="Weight", ascending=False)
+                                symptoms_df["Weight"] = (symptoms_df["Weight"] * 100).round(2).astype(str) + "%"
                                 st.dataframe(symptoms_df, hide_index=True)
                             else:
                                 st.write("No symptom data available.")
