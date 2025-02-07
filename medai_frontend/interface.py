@@ -137,7 +137,7 @@ if st.button("Check Diseases"):
         extracted_symptoms = extract_symptoms_gemini(symptoms_description, API_KEY)
         if extracted_symptoms:
             #st.write(f"Extracted Symptoms: {extracted_symptoms}")
-            url = 'https://medai-39170945173.europe-west1.run.app/diagnosis'
+            url = 'https://medai-final-39170945173.europe-west1.run.app/diagnosis'
 
             params = {"inputs": extracted_symptoms}
 
